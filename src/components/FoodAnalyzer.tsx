@@ -39,7 +39,7 @@ const FoodAnalyzer: React.FC = () => {
     try {
       const imagePart = await fileToGenerativePart(selectedFile);
       
-      const prompt = `Analyze this food image and provide detailed nutritional information. Please respond with ONLY a JSON object in this exact format:
+      const prompt = `Analyze this food image and provide detailed nutritional information. You must analyse the food and each component properly and provide accurate neutrition value. Please respond with ONLY a JSON object in this exact format:
       {
         "calories": number,
         "protein": number,
