@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MessageCircle, Send, Stethoscope, AlertCircle } from 'lucide-react';
-import { model } from '../config/gemini';
+import { callAIAPI } from '../config/gemini';
 
 interface Message {
   id: string;
@@ -38,17 +38,16 @@ const AiDoctor: React.FC = () => {
 
     try {
       const prompt = `You are a helpful AI health assistant. The user has asked: "${currentMessage}"
-      
+
       Please provide helpful, accurate health information while being clear that:
       1. You cannot replace professional medical advice
       2. For serious symptoms or concerns, they should consult a healthcare provider
       3. You can provide general wellness guidance and health education
-      
+
       Keep your response conversational, helpful, and under 200 words. Focus on being supportive while maintaining appropriate medical disclaimers.`;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const aiResponseText = response.text();
+      const response = await callAIAPI({ prompt });
+      const aiResponseText = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),

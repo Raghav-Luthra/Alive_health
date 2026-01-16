@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChefHat, Target, Calendar, CheckCircle } from 'lucide-react';
-import { model } from '../config/gemini';
+import { callAIAPI } from '../config/gemini';
 
 interface DietFormData {
   age: string;
@@ -81,9 +81,8 @@ const DietPlanner: React.FC = () => {
       - Keep it practical and easy to read without excessive formatting
       - Avoid using asterisks (*) for emphasis or formatting`;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      let dietPlanText = response.text();
+      const response = await callAIAPI({ prompt });
+      let dietPlanText = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
       
       // Clean up the formatting to remove excessive asterisks and improve readability
       dietPlanText = dietPlanText

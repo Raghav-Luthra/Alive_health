@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Camera, Upload, Zap, Activity } from 'lucide-react';
-import { visionModel } from '../config/gemini';
-import { fileToGenerativePart } from '../utils/imageUtils';
+import { callAIAPI } from '../config/gemini';
 
 interface NutritionData {
   calories: number;
@@ -33,57 +32,75 @@ const FoodAnalyzer: React.FC = () => {
 
   const analyzeFood = async () => {
     if (!selectedImage || !selectedFile) return;
-    
-    setAnalyzing(true);
-    
-    try {
-      const imagePart = await fileToGenerativePart(selectedFile);
-      
-      const prompt = `Analyze this food image and provide detailed nutritional information. You must analyse the food and each component properly and provide accurate neutrition value. Please respond with ONLY a JSON object in this exact format:
-      {
-        "calories": number,
-        "protein": number,
-        "carbs": number,
-        "fat": number,
-        "fiber": number,
-        "sugar": number
-      }
-      
-      Provide realistic nutritional values per serving. If you cannot identify the food clearly, provide reasonable estimates for a typical meal portion.`;
 
-      const result = await visionModel.generateContent([prompt, imagePart]);
-      const response = await result.response;
-      const text = response.text();
-      
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+    setAnalyzing(true);
+
+    try {
+      const base64Data = selectedImage.split(',')[1];
+
+      const prompt = `You are an expert nutritionist and food analyst. Analyze this food image carefully and provide EXACT nutritional information.
+
+IMPORTANT INSTRUCTIONS:
+1. Identify ALL food items visible in the image
+2. Estimate portion sizes based on visual cues (dishes, utensils, hands for reference)
+3. Consider cooking methods and ingredients
+4. Provide accurate nutritional values per serving
+
+For the identified food:
+- Calculate total calories based on portion size
+- Estimate protein content (account for cooking method)
+- Calculate carbohydrates (include all visible ingredients)
+- Estimate fat content (including cooking oil/butter)
+- Calculate dietary fiber (from vegetables, grains, legumes)
+- Estimate sugar content (from fruits, sauces, added sugars)
+
+RESPONSE FORMAT - Return ONLY valid JSON, no additional text:
+{
+  "calories": number,
+  "protein": number,
+  "carbs": number,
+  "fat": number,
+  "fiber": number,
+  "sugar": number
+}
+
+Be as accurate as possible. Use food databases and standard nutritional values.`;
+
+      const response = await callAIAPI({
+        prompt,
+        imageData: base64Data,
+        imageMediaType: 'image/jpeg',
+        model: 'gemini-2.5-flash'
+      });
+
+      const content = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const nutritionData = JSON.parse(jsonMatch[0]);
-        setNutritionData(nutritionData);
-      } else {
-        // Fallback if JSON parsing fails
         setNutritionData({
-          calories: 250,
-          protein: 15,
-          carbs: 30,
-          fat: 8,
-          fiber: 5,
-          sugar: 6
+          calories: Math.round(nutritionData.calories),
+          protein: Math.round(nutritionData.protein * 10) / 10,
+          carbs: Math.round(nutritionData.carbs * 10) / 10,
+          fat: Math.round(nutritionData.fat * 10) / 10,
+          fiber: Math.round(nutritionData.fiber * 10) / 10,
+          sugar: Math.round(nutritionData.sugar * 10) / 10
         });
+      } else {
+        throw new Error('Invalid response format');
       }
     } catch (error) {
       console.error('Error analyzing food:', error);
-      // Fallback nutrition data
       setNutritionData({
-        calories: 250,
-        protein: 15,
-        carbs: 30,
-        fat: 8,
-        fiber: 5,
-        sugar: 6
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        fiber: 0,
+        sugar: 0
       });
     }
-    
+
     setAnalyzing(false);
   };
 
