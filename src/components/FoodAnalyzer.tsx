@@ -16,6 +16,7 @@ const FoodAnalyzer: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -25,6 +26,7 @@ const FoodAnalyzer: React.FC = () => {
       reader.onload = (e) => {
         setSelectedImage(e.target?.result as string);
         setNutritionData(null);
+        setError(null);
       };
       reader.readAsDataURL(file);
     }
@@ -91,14 +93,9 @@ Be as accurate as possible. Use food databases and standard nutritional values.`
       }
     } catch (error) {
       console.error('Error analyzing food:', error);
-      setNutritionData({
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-        fiber: 0,
-        sugar: 0
-      });
+      const errorMsg = error instanceof Error ? error.message : 'Failed to analyze food';
+      setError(errorMsg);
+      setNutritionData(null);
     }
 
     setAnalyzing(false);
@@ -188,6 +185,12 @@ Be as accurate as possible. Use food databases and standard nutritional values.`
               Nutrition Results
             </h3>
             
+            {error && (
+              <div className="p-4 bg-red-900/20 border border-red-700/30 rounded-lg">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+
             {nutritionData ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -226,12 +229,12 @@ Be as accurate as possible. Use food databases and standard nutritional values.`
                   </p>
                 </div>
               </div>
-            ) : (
+            ) : !error ? (
               <div className="text-center py-8">
                 <Activity className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-400">Upload and analyze a food image to see nutrition results</p>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
